@@ -12,6 +12,10 @@ const config: Config = {
         bg: "white",
         text: "#333333",
         primary: "#46A2A0",
+        boxhead: "#FAFAFA",
+      },
+      padding: {
+        primary: "16px",
       },
     },
   },

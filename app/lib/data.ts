@@ -50,3 +50,30 @@ export const sidebarItems = [
     icon: GrHelpBook,
   },
 ];
+
+export const quickItems = [
+  {
+    label: "查看教程",
+    href: "/dashboard/knowledge",
+    icon: GrHelpBook,
+    description: "学习如何使用图书管理系统",
+  },
+  {
+    label: "快速借书",
+    href: "/dashboard/loan",
+    icon: GrHelpBook,
+    description: "快速切换到借书管理",
+  },
+  {
+    label: "快速上架",
+    href: "/dashboard/upload",
+    icon: GrHelpBook,
+    description: "快速切换到上架书籍",
+  },
+  {
+    label: "修改资料",
+    href: "/dashboard/admin",
+    icon: GrHelpBook,
+    description: "快速修改个人资料",
+  },
+];
