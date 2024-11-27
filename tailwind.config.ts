@@ -10,6 +10,7 @@ const config: Config = {
     extend: {
       colors: {
         bg: "white",
+        bg2: "#F0F3F8",
         text: "#333333",
         primary: "#46A2A0",
         boxhead: "#FAFAFA",

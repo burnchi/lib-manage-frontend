@@ -77,3 +77,22 @@ export const quickItems = [
     description: "快速修改个人资料",
   },
 ];
+
+export const bookItems = [
+  {
+    id: 1,
+    title: "《JavaScript权威指南》",
+    category: "计算机",
+    publishedAt: "2019-01-01",
+    copies_owned: 10,
+    author: "李杰",
+  },
+  {
+    id: 2,
+    title: "《Python编程从入门到实践》",
+    category: "计算机",
+    publishedAt: "2019-01-01",
+    copies_owned: 10,
+    author: "李荣浩",
+  },
+];
