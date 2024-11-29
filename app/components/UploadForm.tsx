@@ -1,7 +1,7 @@
 "use client";
-import { addAuthor, fetchAuthors } from "@/app/lib/author";
+import { fetchAuthors } from "@/app/lib/author";
 import { addBook } from "@/app/lib/books";
-import { addCategory, fetchCategories } from "@/app/lib/categories";
+import { fetchCategories } from "@/app/lib/categories";
 import { cn } from "@/app/lib/util";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -18,6 +18,8 @@ const UploadForm = () => {
   const [categoryVal, setcategoryVal] = useState("");
   const [categoryList, setcategoryList] = useState([]);
   const [categorydropdownVisible, setcategoryDropdownVisible] = useState(false);
+  const [categoryselectedTags, setcategorySelectedTags] = useState([]);
+  const [authorselectedTags, setauthorSelectedTags] = useState([]);
   const [authorVal, setauthorVal] = useState("");
   const [authorList, setauthorList] = useState([]);
   const [authordropdownVisible, setauthorDropdownVisible] = useState(false);
@@ -77,7 +79,9 @@ const UploadForm = () => {
     const categoryList = (categories as any).filter((category) =>
       category.name.toLowerCase().includes(name.toLowerCase()),
     );
-    setcategoryVal(name);
+    setcategorySelectedTags([...categoryselectedTags, name]);
+    // 清空输入框
+    setcategoryVal("");
     setcategoryList(categoryList);
     setcategoryDropdownVisible(false);
   };
@@ -88,30 +92,42 @@ const UploadForm = () => {
     const authorlist = (authors as any).filter((author) =>
       author.name.toLowerCase().includes(name.toLowerCase()),
     );
-    setauthorVal(name);
+    setauthorSelectedTags([...authorselectedTags, name]);
+    // 清空输入框
+
+    setauthorVal("");
     setauthorList(authorlist);
     setauthorDropdownVisible(false);
   };
 
+  const DelCategorySelectedTag = (tag: string) => {
+    // 删除某个分类标签
+    const newTags = categoryselectedTags.filter((item) => item !== tag);
+    setcategorySelectedTags(newTags);
+  };
+
+  const DelAuthorSelectedTag = (tag: string) => {
+    // 删除某个分类标签
+    const newTags = authorselectedTags.filter((item) => item !== tag);
+    setauthorSelectedTags(newTags);
+  };
+
   // 这是没有找到分类，需要创建分类的情况
-  const CreateCategory = () => {
+  const CreateCategory = (name: string) => {
     // 根据分类名称创建分类
     console.log("create category" + categoryVal);
-    createCategoryMutation.mutate({
-      name: categoryVal,
-    });
+    setcategorySelectedTags([...categoryselectedTags, name]);
+    setcategoryVal("");
     // 取消focus
     setcategoryDropdownVisible(false);
   };
 
   // 这是没有找到作者，需要创建作者的情况
-  const CreateAuthor = () => {
+  const CreateAuthor = (name: string) => {
     // 根据分类名称创建分类
     console.log("create author" + authorVal);
-    createAuthorMutation.mutate({
-      name: authorVal,
-      book_id: 1,
-    });
+    setauthorSelectedTags([...authorselectedTags, name]);
+    setauthorVal("");
     // 取消focus
     setauthorDropdownVisible(false);
   };
@@ -126,18 +142,18 @@ const UploadForm = () => {
     },
   });
 
-  const createAuthorMutation = useMutation({
-    mutationFn: addAuthor,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["authors"] });
-    },
-  });
-  const createCategoryMutation = useMutation({
-    mutationFn: addCategory,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
-    },
-  });
+  // const createAuthorMutation = useMutation({
+  //   mutationFn: addAuthor,
+  //   onSuccess: () => {
+  //     queryClient.invalidateQueries({ queryKey: ["authors"] });
+  //   },
+  // });
+  // const createCategoryMutation = useMutation({
+  //   mutationFn: addCategory,
+  //   onSuccess: () => {
+  //     queryClient.invalidateQueries({ queryKey: ["categories"] });
+  //   },
+  // });
 
   // 请求后端API
   const authenticate = (formData: any) => {
@@ -172,6 +188,8 @@ const UploadForm = () => {
           inputValue={authorVal}
           handleChange={ChangeAuthor}
           handleSelect={SelectAuthor}
+          selectedTags={authorselectedTags}
+          DelSelectedTag={DelAuthorSelectedTag}
           CreateItem={CreateAuthor}
           startList={authors}
           filterList={authorList}
@@ -198,6 +216,8 @@ const UploadForm = () => {
           inputValue={categoryVal}
           handleChange={ChangeCategory}
           handleSelect={SelectCategory}
+          selectedTags={categoryselectedTags}
+          DelSelectedTag={DelCategorySelectedTag}
           CreateItem={CreateCategory}
           startList={categories}
           filterList={categoryList}
@@ -256,6 +276,8 @@ const Select = ({
   inputValue,
   handleSelect,
   handleChange,
+  selectedTags,
+  DelSelectedTag,
   CreateItem,
   startList,
   filterList,
@@ -300,15 +322,35 @@ const Select = ({
   return (
     <div className="flex flex-col gap-1 relative">
       <h2>{label}</h2>
-      <input
-        className="ring-1 ring-blue-200 p-2 focus:outline-blue-500 w-full "
-        type="text"
-        id={inputid}
-        value={inputValue}
-        ref={inputRef}
-        onChange={handleChange}
-        onFocus={() => setDropdownVisible(true)}
-      />
+      {/* 点击分类按钮或创建按钮后显示标签 */}
+      <div className="flex flex-wrap items-center ring-1 ring-blue-200 group focus-within:ring-blue-500 gap-1 px-2">
+        {selectedTags.length > 0 &&
+          selectedTags.map((tag) => (
+            <div
+              key={tag}
+              className="bg-blue-500 text-white px-2 py-1 rounded-md flex gap-1 items-center "
+            >
+              {tag}
+              <button
+                className="text-[12px] "
+                onClick={() => DelSelectedTag(tag)}
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        <input
+          className="p-2  flex-1 outline-none"
+          type="text"
+          id={inputid}
+          value={inputValue}
+          ref={inputRef}
+          onChange={handleChange}
+          onFocus={() => setDropdownVisible(true)}
+        />
+      </div>
+
+      {/* 浮空菜单 */}
       <div
         className={cn(
           "absolute top-[calc(101%+4px)] bg-bg shadow-sm rounded-sm w-full border p-1 max-h-[400px] overflow-y-auto z-10",
@@ -330,9 +372,10 @@ const Select = ({
           // 有创建字样的按钮，才会调用创建api
           <button
             className="py-2 px-2 hover:bg-gray-50 w-full text-left"
-            onClick={CreateItem}
+            onClick={() => CreateItem(inputValue)}
           >
-            创建<span className="text-blue-499">{inputValue}</span>分类
+            添加<span className="text-blue-500">{inputValue}</span>
+            {label}
           </button>
         )}
       </div>
