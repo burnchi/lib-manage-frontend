@@ -4,6 +4,7 @@ import { addBook } from "@/app/lib/books";
 import { fetchCategories } from "@/app/lib/categories";
 import { cn } from "@/app/lib/util";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -12,7 +13,7 @@ interface FormData {
   author: string;
   publishedAt: string;
   category: string;
-  copies_owned: number;
+  copied_owned: number;
 }
 const UploadForm = () => {
   const [categoryVal, setcategoryVal] = useState("");
@@ -26,6 +27,7 @@ const UploadForm = () => {
   const queryClient = useQueryClient();
   const { register, handleSubmit, formState } = useForm<FormData>();
   const { errors } = formState;
+  const router = useRouter();
   const categoryName = "category";
 
   // 请求所有分类数据
@@ -79,25 +81,31 @@ const UploadForm = () => {
     const categoryList = (categories as any).filter((category) =>
       category.name.toLowerCase().includes(name.toLowerCase()),
     );
-    setcategorySelectedTags([...categoryselectedTags, name]);
+
+    // 分类只能选一个
+    if (categoryselectedTags.length < 1) {
+      setcategorySelectedTags([...categoryselectedTags, name]);
+    }
+
     // 清空输入框
-    setcategoryVal("");
     setcategoryList(categoryList);
-    setcategoryDropdownVisible(false);
+    // setcategoryDropdownVisible(false);
+    setcategoryVal("");
   };
 
   // 有作者时，选择作者
   const SelectAuthor = (name: string) => {
+    // console.log(name);
     // 点击某个分类之后，分类状态值改变，过滤的分类组也应该改变
     const authorlist = (authors as any).filter((author) =>
       author.name.toLowerCase().includes(name.toLowerCase()),
     );
+
     setauthorSelectedTags([...authorselectedTags, name]);
     // 清空输入框
-
-    setauthorVal("");
     setauthorList(authorlist);
-    setauthorDropdownVisible(false);
+    // setauthorDropdownVisible(false);
+    setauthorVal("");
   };
 
   const DelCategorySelectedTag = (tag: string) => {
@@ -115,7 +123,7 @@ const UploadForm = () => {
   // 这是没有找到分类，需要创建分类的情况
   const CreateCategory = (name: string) => {
     // 根据分类名称创建分类
-    console.log("create category" + categoryVal);
+    // console.log("create category" + categoryVal);
     setcategorySelectedTags([...categoryselectedTags, name]);
     setcategoryVal("");
     // 取消focus
@@ -125,7 +133,7 @@ const UploadForm = () => {
   // 这是没有找到作者，需要创建作者的情况
   const CreateAuthor = (name: string) => {
     // 根据分类名称创建分类
-    console.log("create author" + authorVal);
+    // console.log("create author" + authorVal);
     setauthorSelectedTags([...authorselectedTags, name]);
     setauthorVal("");
     // 取消focus
@@ -136,42 +144,35 @@ const UploadForm = () => {
     mutationFn: addBook,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["books"] });
+      router.push("/dashboard/upload");
     },
     onError: (error) => {
       console.log(error);
     },
   });
 
-  // const createAuthorMutation = useMutation({
-  //   mutationFn: addAuthor,
-  //   onSuccess: () => {
-  //     queryClient.invalidateQueries({ queryKey: ["authors"] });
-  //   },
-  // });
-  // const createCategoryMutation = useMutation({
-  //   mutationFn: addCategory,
-  //   onSuccess: () => {
-  //     queryClient.invalidateQueries({ queryKey: ["categories"] });
-  //   },
-  // });
-
   // 请求后端API
   const authenticate = (formData: any) => {
-    const { title, author, publishedAt, category, copies_owned } = formData;
-    const copies_num = Number(copies_owned);
-    // console.log(typeof copies_num);
+    console.log("call submit");
+    // console.log(formData);
+    const { copied_owned } = formData;
+    const mergeFormData = {
+      ...formData,
+      author_list: authorselectedTags,
+      category_name: categoryselectedTags[0],
+    }; // const { title, author, publishedAt, category, copied_owned } = formData;
+    // console.log(mergeFormData);
+    const copied_num = parseInt(copied_owned, 10);
+    // console.log(copied_owned);
     // 需要请求其他表的指定数据，找到他们的id,请求完还需要更新一下作者id
     // 请求api
     createBookMutation.mutate({
-      title,
-      publishedAt,
-      copied_owned: copies_num,
-      category_id: 2,
-      author_id: 2,
+      ...mergeFormData,
+      copied_owned: copied_num,
     });
   };
   return (
-    <div className="bg-bg">
+    <div className="bg-bg ">
       <form
         className="bg-transparent m-auto flex flex-col p-9 gap-y-4 shadow-sm rounded-sm"
         onSubmit={handleSubmit(authenticate)}
@@ -185,6 +186,8 @@ const UploadForm = () => {
           placeholder="论语"
         />
         <Select
+          label="作者"
+          inputid="author"
           inputValue={authorVal}
           handleChange={ChangeAuthor}
           handleSelect={SelectAuthor}
@@ -195,8 +198,6 @@ const UploadForm = () => {
           filterList={authorList}
           setDropdownVisible={setauthorDropdownVisible}
           dropdownVisible={authordropdownVisible}
-          inputid="author"
-          label="作者"
         />
 
         <Input
@@ -205,7 +206,7 @@ const UploadForm = () => {
           register={register}
           validation={{
             pattern: {
-              value: /^\d{4}-\d{2}-\d{2}$/,
+              value: /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/,
               message: "请输入正确的日期格式",
             },
           }}
@@ -213,6 +214,8 @@ const UploadForm = () => {
           message={errors["publishedAt"]?.message}
         />
         <Select
+          inputid={categoryName}
+          label="分类"
           inputValue={categoryVal}
           handleChange={ChangeCategory}
           handleSelect={SelectCategory}
@@ -223,24 +226,25 @@ const UploadForm = () => {
           filterList={categoryList}
           setDropdownVisible={setcategoryDropdownVisible}
           dropdownVisible={categorydropdownVisible}
-          inputid={categoryName}
-          label="分类"
         />
         <Input
-          inputid="copies_owned"
+          inputid="copied_owned"
           label="库存"
           register={register}
           validation={{
             pattern: {
               value: /^\d+$/,
-              message: "请输入数字",
+              message: "请输入正整数",
             },
           }}
-          placeholder="101"
-          message={errors["copies_owned"]?.message}
+          placeholder="100"
+          message={errors["copied_owned"]?.message}
         />
-        <button type="submit" className="p-1 bg-blue-500 text-white">
-          提交
+        <button
+          type="submit"
+          className=" mx-auto p-1 px-5 bg-blue-500 text-white hover:opacity-90 rounded-sm"
+        >
+          上架
         </button>
       </form>
     </div>
@@ -260,13 +264,13 @@ const Input = ({
     <div className="flex flex-col gap-1">
       <h2>{label}</h2>
       <input
-        className="ring-1 ring-blue-200 p-2 focus:outline-blue-500"
+        className="ring-1 ring-blue-200 p-2 focus:ring-blue-500 outline-none rounded-sm"
         type="text"
         id={inputid}
         {...register(inputid, validation)}
         placeholder={placeholder}
-        autoComplete="off"
       />
+      {/* 错误信息 */}
       <p className="text-red-500 text-[12px]">{message}</p>
     </div>
   );
@@ -323,7 +327,8 @@ const Select = ({
     <div className="flex flex-col gap-1 relative">
       <h2>{label}</h2>
       {/* 点击分类按钮或创建按钮后显示标签 */}
-      <div className="flex flex-wrap items-center ring-1 ring-blue-200 group focus-within:ring-blue-500 gap-1 px-2">
+      <div className="flex flex-wrap items-center ring-1 ring-blue-200 group focus-within:ring-blue-500 gap-1 px-2 rounded-sm">
+        {/* 渲染已选择的标签 */}
         {selectedTags.length > 0 &&
           selectedTags.map((tag) => (
             <div
@@ -353,7 +358,7 @@ const Select = ({
       {/* 浮空菜单 */}
       <div
         className={cn(
-          "absolute top-[calc(101%+4px)] bg-bg shadow-sm rounded-sm w-full border p-1 max-h-[400px] overflow-y-auto z-10",
+          "absolute top-[calc(100%+4px)] bg-bg shadow-sm rounded-sm w-full border p-1 max-h-[400px] overflow-y-auto z-10",
           dropdownVisible ? "block" : "hidden",
         )}
         ref={dropdownRef}

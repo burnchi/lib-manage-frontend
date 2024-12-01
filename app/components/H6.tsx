@@ -8,7 +8,7 @@ const H6 = ({
   className?: string;
 }) => {
   return (
-    <h6 className={cn("text-[15px] font-bold text-blue-500", className)}>
+    <h6 className={cn("text-[14px] font-bold text-blue-500", className)}>
       {children}
     </h6>
   );

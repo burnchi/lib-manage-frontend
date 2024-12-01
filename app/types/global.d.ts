@@ -2,10 +2,27 @@ declare global {
   // 要跟后端接口的名称保持一致
   interface Book {
     title: string;
-    author_id: number;
+    category_name: string;
     publishedAt: string;
-    category_id: number;
     copied_owned: number;
+    author_list: string[];
+  }
+
+  interface AuthorProps {
+    id: number;
+    name: string;
+  }
+
+  interface BookProps {
+    id: number;
+    title: string;
+    publishedAt: string;
+    copied_owned: number;
+    category: {
+      id: number;
+      name: string;
+    };
+    authors: AuthorProps[];
   }
 
   interface Category {

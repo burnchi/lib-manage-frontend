@@ -1,8 +1,18 @@
 const url = process.env.API_URL || "http://localhost:3000/";
 const route = "book";
 
-export async function fetchBooks() {
-  const response = await fetch(url + route);
+export async function findBooks({
+  page = 1,
+  pageSize = 3,
+  search = "",
+}: {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+}) {
+  const response = await fetch(
+    url + route + `?page=${page}&pageSize=${pageSize}&search=${search}`,
+  );
   return response.json();
 }
 

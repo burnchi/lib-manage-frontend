@@ -3,6 +3,9 @@ import { VscDashboard } from "react-icons/vsc";
 
 export const websiteData = {
   title: "📘图书管理系统",
+  defaultPage: 1,
+  defaultPageSize: 6,
+  pagePerBookButtons: ["6", "9", "12"],
 };
 
 export const sidebarItems = [
