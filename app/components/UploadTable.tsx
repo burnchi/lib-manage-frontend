@@ -2,8 +2,11 @@
 import H2 from "@/app/components/H2";
 import H6 from "@/app/components/H6";
 import Pagination from "@/app/components/Pagination";
+import { fetchAuthors } from "@/app/lib/author";
 import { findBooks } from "@/app/lib/books";
+import { fetchCategories } from "@/app/lib/categories";
 import { websiteData } from "@/app/lib/data";
+import { cn } from "@/app/lib/util";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -24,27 +27,63 @@ const UploadTable = () => {
   let search = params.get("search") || "";
   const searchRef = useRef(null);
   const pathname = usePathname();
+  const dropdownItems = ["分类", "作者"];
+  let category = params.get("category") || "";
+  let author = params.get("author") || "";
 
   // console.log(page, pageSize);
 
   const { replace } = useRouter();
   // 请求所有书籍数据
-  const { data } = useQuery({
+  const { data: bookObj } = useQuery({
     queryKey: ["books", page, pageSize, search],
     queryFn: () => findBooks({ page, pageSize, search }),
   });
+
+  const { data: categoryObj } = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => fetchCategories(),
+  });
+  const { data: authorObj } = useQuery({
+    queryKey: ["authors"],
+    queryFn: () => fetchAuthors(),
+  });
+
   // const { books } = data;
   let books = [];
   let totalCount = 0;
-  // console.log(data?.books);
+  // console.log(bookObj?.books);
   let totalPages = 0;
 
   // 刚开始请求数据时，data 为 undefined，需要判断一下
-  if (data?.books) {
-    books = data.books;
-    totalCount = data.totalCount;
-    totalPages = data.totalPages;
+  if (bookObj?.books) {
+    books = bookObj.books;
+    totalCount = bookObj.totalCount;
+    totalPages = bookObj.totalPages;
   }
+
+  const dropdownMenu = dropdownItems.map((item) => {
+    if (item === "分类") {
+      return <DropdownMenu key={item} title={item} menuItems={categoryObj} />;
+    }
+    if (item === "作者") {
+      return <DropdownMenu key={item} title={item} menuItems={authorObj} />;
+    }
+  });
+
+  const searchCategory = (name: string) => {
+    params.set("category", name);
+    // 跳转到第一页
+    params.delete("page");
+    replace(`${pathname}?${params}`);
+  };
+
+  const searchAuthor = (name: string) => {
+    params.set("author", name);
+    // 跳转到第一页
+    params.delete("page");
+    replace(`${pathname}?${params}`);
+  };
 
   const ChangeSearch = (e: any) => {
     setsearchVal(e.target.value);
@@ -120,20 +159,10 @@ const UploadTable = () => {
           )}
         </div>
         {/* 分类 */}
-        <div className="flex-wrap">
+        <div className="flex flex-wrap gap-2">
           {/* 点击之后弹出分类选择框 */}
-          <div className="v-popper v-popper--theme-dropdown">
-            {/* 文字描述 */}
-            <div className="flex cursor-pointer select-none items-center text-sm text-gray-700 hover:text-black">
-              <span className="mr-0.5">状态：全部</span>
-              {/* 下尖号 */}
-              <span>
-                <svg viewBox="0 0 24 24" width="1.2em" height="1.2em">
-                  <path fill="currentColor" d="m12 16l-6-6h12l-6 6Z"></path>
-                </svg>
-              </span>
-            </div>
-          </div>
+          {/* 文字描述 */}
+          {dropdownMenu}
         </div>
       </div>
       {/* 条目layout */}
@@ -187,9 +216,10 @@ const Card = ({
         </div>
         {/* entity start */}
         <div className="flex flex-1 gap-[1rem] items-center">
-          <div className="inline-flex flex-col w-[27rem] max-w-[27rem] gap-[0.25rem]">
+          <div className="inline-flex flex-col   gap-[0.25rem]">
             <H2 className="text-base">{title}</H2>
-            <div className="flex items-center gap-[0.5rem]">
+            {/* 标题底下部分 */}
+            <div className="flex items-center  gap-[0.5rem]">
               <H6 className="text-gray-500 ">
                 作者:
                 <div className="inline-flex gap-[0.25rem] ">
@@ -220,6 +250,119 @@ const Card = ({
         </div>
       </div>
     </li>
+  );
+};
+
+const DropdownMenu = ({ title, menuItems }) => {
+  const [open, setopen] = useState(false);
+  const menuRef = useRef(null);
+  const dropdownRef = useRef(null);
+  const [searchVal, setsearchVal] = useState("");
+  // 获取当前页码
+  const searchParams = useSearchParams();
+  const params = new URLSearchParams(searchParams);
+  let category = params.get("category") || "";
+  let author = params.get("author") || "";
+  const pathname = usePathname();
+  const { replace } = useRouter();
+
+  const toggleDropdown = () => {
+    setopen((status) => !status);
+  };
+
+  const ChangeSearch = (e) => {
+    setsearchVal(e.target.value);
+  };
+
+  const searchItems = (label: string, name: string) => {
+    const labelName = label.split("_")[0];
+    params.delete("category");
+    params.delete("author");
+    params.set(labelName, name);
+    // 跳转到第一页
+    params.delete("page");
+    replace(`${pathname}?${params}`);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // 如果点击的区域不是 input 或 dropdownMenu，隐藏菜单
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target)
+      ) {
+        toggleDropdown();
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  return (
+    <div className="relative">
+      <button
+        className="flex cursor-pointer select-none items-center text-sm text-gray-700 hover:text-black"
+        onClick={toggleDropdown}
+        ref={menuRef}
+      >
+        <span className="mr-0.5">{title}</span>
+        {/* 下尖号 */}
+        <span>
+          <svg viewBox="0 0 24 24" width="1.2em" height="1.2em">
+            <path fill="currentColor" d="m12 16l-6-6h12l-6 6Z"></path>
+          </svg>
+        </span>
+      </button>
+      {/* 下拉框 */}
+      {open && (
+        <div
+          className={cn(
+            "absolute top-[calc(100%+4px)] bg-bg shadow-sm rounded-sm w-[13rem] border  max-h-[300px] overflow-y-auto z-10 left-1/2 -translate-x-1/2",
+            open ? "block" : "hidden",
+          )}
+          ref={dropdownRef}
+        >
+          <div className="p-2">
+            {/* 搜索框 */}
+            <div
+              className=" bg-white inline-flex p-1 items-center sm:w-auto w-full  border border-gray-300 h-9  overflow-hidden 
+                focus-within:border-primary focus-within:shadow-sm sm:max-w-lg transition-all"
+            >
+              <input
+                placeholder="输入关键词搜索"
+                className="resize-none w-full text-black block  px-3 text-sm focus:outline-none"
+                onChange={ChangeSearch}
+                value={searchVal}
+                type="text"
+              />
+            </div>
+          </div>
+          {menuItems &&
+            menuItems.map((item, inx) => (
+              <button
+                key={inx}
+                className="py-2 px-2 hover:bg-gray-50 w-full flex items-center justify-between border-t"
+                onClick={() =>
+                  searchItems(
+                    Object.keys(item)[0],
+                    item.category_name || item.author_name,
+                  )
+                }
+              >
+                <H6 className="text-black">
+                  {item.category_name || item.author_name}
+                </H6>
+                <H6 className="text-black">{`${item.book_count}篇文章`}</H6>
+              </button>
+            ))}
+        </div>
+      )}
+    </div>
   );
 };
 export default UploadTable;

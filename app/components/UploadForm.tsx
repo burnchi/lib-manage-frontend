@@ -22,6 +22,7 @@ const UploadForm = () => {
   const [categoryselectedTags, setcategorySelectedTags] = useState([]);
   const [authorselectedTags, setauthorSelectedTags] = useState([]);
   const [authorVal, setauthorVal] = useState("");
+  // 过滤的作者列表
   const [authorList, setauthorList] = useState([]);
   const [authordropdownVisible, setauthorDropdownVisible] = useState(false);
   const queryClient = useQueryClient();
@@ -76,7 +77,8 @@ const UploadForm = () => {
   };
 
   // 有分类时，选择分类
-  const SelectCategory = (name: string) => {
+  const SelectCategory = (name: string, e: any) => {
+    e.preventDefault();
     // 点击某个分类之后，分类状态值改变，过滤的分类组也应该改变
     const categoryList = (categories as any).filter((category) =>
       category.name.toLowerCase().includes(name.toLowerCase()),
@@ -89,22 +91,28 @@ const UploadForm = () => {
 
     // 清空输入框
     setcategoryList(categoryList);
-    // setcategoryDropdownVisible(false);
+    setcategoryDropdownVisible(false);
     setcategoryVal("");
   };
 
   // 有作者时，选择作者
-  const SelectAuthor = (name: string) => {
+  const SelectAuthor = (name: string, e: any) => {
+    e.preventDefault();
     // console.log(name);
     // 点击某个分类之后，分类状态值改变，过滤的分类组也应该改变
     const authorlist = (authors as any).filter((author) =>
       author.name.toLowerCase().includes(name.toLowerCase()),
     );
 
-    setauthorSelectedTags([...authorselectedTags, name]);
-    // 清空输入框
+    // 作者不能重复
+    if (!authorselectedTags.includes(name)) {
+      setauthorSelectedTags([...authorselectedTags, name]);
+    }
+
+    // 过滤的作者列表
     setauthorList(authorlist);
-    // setauthorDropdownVisible(false);
+    setauthorDropdownVisible(false);
+    // 清空输入框
     setauthorVal("");
   };
 
@@ -188,6 +196,7 @@ const UploadForm = () => {
         <Select
           label="作者"
           inputid="author"
+          placeholder="孔子"
           inputValue={authorVal}
           handleChange={ChangeAuthor}
           handleSelect={SelectAuthor}
@@ -216,6 +225,7 @@ const UploadForm = () => {
         <Select
           inputid={categoryName}
           label="分类"
+          placeholder="计算机"
           inputValue={categoryVal}
           handleChange={ChangeCategory}
           handleSelect={SelectCategory}
@@ -287,6 +297,7 @@ const Select = ({
   filterList,
   setDropdownVisible,
   dropdownVisible,
+  placeholder,
   inputid,
   label,
 }: any) => {
@@ -327,7 +338,12 @@ const Select = ({
     <div className="flex flex-col gap-1 relative">
       <h2>{label}</h2>
       {/* 点击分类按钮或创建按钮后显示标签 */}
-      <div className="flex flex-wrap items-center ring-1 ring-blue-200 group focus-within:ring-blue-500 gap-1 px-2 rounded-sm">
+      <div
+        className={cn(
+          "flex flex-wrap items-center ring-1 ring-blue-200 group focus-within:ring-blue-500 gap-1 rounded-sm",
+          selectedTags.length > 0 && "px-2",
+        )}
+      >
         {/* 渲染已选择的标签 */}
         {selectedTags.length > 0 &&
           selectedTags.map((tag) => (
@@ -349,6 +365,7 @@ const Select = ({
           type="text"
           id={inputid}
           value={inputValue}
+          placeholder={placeholder}
           ref={inputRef}
           onChange={handleChange}
           onFocus={() => setDropdownVisible(true)}
@@ -368,7 +385,7 @@ const Select = ({
             <button
               className="py-2 px-2 hover:bg-gray-50 w-full text-left"
               key={item.name}
-              onClick={() => handleSelect(item.name)}
+              onClick={(e) => handleSelect(item.name, e)}
             >
               {item.name}
             </button>
