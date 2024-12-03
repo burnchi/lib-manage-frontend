@@ -5,13 +5,19 @@ export async function findBooks({
   page = 1,
   pageSize = 3,
   search = "",
+  author = "",
+  category = "",
 }: {
   page?: number;
   pageSize?: number;
   search?: string;
+  author?: string;
+  category?: string;
 }) {
   const response = await fetch(
-    url + route + `?page=${page}&pageSize=${pageSize}&search=${search}`,
+    url +
+      route +
+      `?page=${page}&pageSize=${pageSize}&search=${search}&author=${author}&category=${category}`,
   );
   return response.json();
 }

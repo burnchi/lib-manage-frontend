@@ -36,14 +36,16 @@ const UploadTable = () => {
   const { replace } = useRouter();
   // 请求所有书籍数据
   const { data: bookObj } = useQuery({
-    queryKey: ["books", page, pageSize, search],
-    queryFn: () => findBooks({ page, pageSize, search }),
+    queryKey: ["books", page, pageSize, search, author, category],
+    queryFn: () => findBooks({ page, pageSize, search, author, category }),
   });
 
+  // 分类下拉菜单
   const { data: categoryObj } = useQuery({
     queryKey: ["categories"],
     queryFn: () => fetchCategories(),
   });
+  // 作者下拉菜单
   const { data: authorObj } = useQuery({
     queryKey: ["authors"],
     queryFn: () => fetchAuthors(),
@@ -90,10 +92,7 @@ const UploadTable = () => {
   };
   const clearSearch = () => {
     setsearchVal("");
-
-    // 删除 search 参数
-    params.delete("search");
-    replace(`${pathname}?${params}`);
+    replace(`${pathname}`);
   };
 
   // 监听回车搜索
@@ -149,19 +148,12 @@ const UploadTable = () => {
               type="text"
             />
           </div>
-          {searchVal.length > 0 && (
-            <button className="p-2 group">
-              <IoIosCloseCircleOutline
-                className="text-red-500 group-hover:opacity-90"
-                onClick={clearSearch}
-              />
-            </button>
-          )}
+          {searchVal.length > 0 && <ResetButton clearSearch={clearSearch} />}
         </div>
         {/* 分类 */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 items-center">
+          {(category || author) && <ResetButton clearSearch={clearSearch} />}
           {/* 点击之后弹出分类选择框 */}
-          {/* 文字描述 */}
           {dropdownMenu}
         </div>
       </div>
@@ -192,6 +184,7 @@ const UploadTable = () => {
   );
 };
 
+// 卡片组件
 const Card = ({
   title,
   category,
@@ -276,6 +269,7 @@ const DropdownMenu = ({ title, menuItems }) => {
 
   const searchItems = (label: string, name: string) => {
     const labelName = label.split("_")[0];
+    toggleDropdown();
     params.delete("category");
     params.delete("author");
     params.set(labelName, name);
@@ -363,6 +357,17 @@ const DropdownMenu = ({ title, menuItems }) => {
         </div>
       )}
     </div>
+  );
+};
+
+const ResetButton = ({ clearSearch }) => {
+  return (
+    <button className="p-2 group">
+      <IoIosCloseCircleOutline
+        className="text-red-500 group-hover:opacity-90"
+        onClick={clearSearch}
+      />
+    </button>
   );
 };
 export default UploadTable;
