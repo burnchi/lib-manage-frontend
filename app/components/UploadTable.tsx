@@ -1,7 +1,8 @@
 "use client";
-import H2 from "@/app/components/H2";
 import H6 from "@/app/components/H6";
 import Pagination from "@/app/components/Pagination";
+import { searchAuthorHook } from "@/app/hooks/searchAuthorHook";
+import { searchCategoryHook } from "@/app/hooks/searchCategoryHook";
 import { fetchAuthors } from "@/app/lib/author";
 import { findBooks } from "@/app/lib/books";
 import { fetchCategories } from "@/app/lib/categories";
@@ -18,6 +19,8 @@ const UploadTable = () => {
   const [currentPageBooks, setCurrentPageBooks] = useState([]);
   const [searchVal, setsearchVal] = useState("");
   const { defaultPage, defaultPageSize } = websiteData;
+  const { categoryVal, setcategoryVal } = searchCategoryHook();
+  const { authorVal, setauthorVal } = searchAuthorHook();
 
   // 获取当前页码
   const searchParams = useSearchParams();
@@ -66,10 +69,26 @@ const UploadTable = () => {
 
   const dropdownMenu = dropdownItems.map((item) => {
     if (item === "分类") {
-      return <DropdownMenu key={item} title={item} menuItems={categoryObj} />;
+      return (
+        <DropdownMenu
+          key={item}
+          title={item}
+          menuItems={categoryObj}
+          searchVal={categoryVal}
+          setsearchVal={setcategoryVal}
+        />
+      );
     }
     if (item === "作者") {
-      return <DropdownMenu key={item} title={item} menuItems={authorObj} />;
+      return (
+        <DropdownMenu
+          key={item}
+          title={item}
+          menuItems={authorObj}
+          searchVal={authorVal}
+          setsearchVal={setauthorVal}
+        />
+      );
     }
   });
 
@@ -92,6 +111,8 @@ const UploadTable = () => {
   };
   const clearSearch = () => {
     setsearchVal("");
+    setcategoryVal("");
+    setauthorVal("");
     replace(`${pathname}`);
   };
 
@@ -150,7 +171,7 @@ const UploadTable = () => {
           </div>
           {searchVal.length > 0 && <ResetButton clearSearch={clearSearch} />}
         </div>
-        {/* 分类 */}
+        {/* 分类/作者下拉菜单 */}
         <div className="flex flex-wrap gap-2 items-center">
           {(category || author) && <ResetButton clearSearch={clearSearch} />}
           {/* 点击之后弹出分类选择框 */}
@@ -165,6 +186,7 @@ const UploadTable = () => {
             books.map((book: BookProps) => (
               <Card
                 key={book.id}
+                id={book.id}
                 title={book.title}
                 publishedAt={book.publishedAt}
                 copied_owned={book.copied_owned}
@@ -186,31 +208,38 @@ const UploadTable = () => {
 
 // 卡片组件
 const Card = ({
+  id,
   title,
   category,
   authors,
   publishedAt,
   copied_owned,
 }: {
+  id: number;
   title: string;
   category: string;
   authors: string[];
   publishedAt: string;
   copied_owned: number;
 }) => {
+  const updateHref = `/dashboard/book/${id}`;
   return (
     <li className="p-primary hover:bg-gray-50 border-b border-[#eaecf0]">
       {/* indicator */}
       <div></div>
       {/* entity */}
       <div className="relative flex items-center w-full">
+        {/* 选择框 */}
         <div className="mr-[1rem]">
           <input type="checkbox" className="rounded-sm " />
         </div>
         {/* entity start */}
         <div className="flex flex-1 gap-[1rem] items-center">
-          <div className="inline-flex flex-col   gap-[0.25rem]">
-            <H2 className="text-base">{title}</H2>
+          <div className="inline-flex flex-col items-start  gap-[0.25rem]">
+            {/* 标题 */}
+            <Link href={updateHref} className="text-base w-auto">
+              {title}
+            </Link>
             {/* 标题底下部分 */}
             <div className="flex items-center  gap-[0.5rem]">
               <H6 className="text-gray-500 ">
@@ -246,11 +275,10 @@ const Card = ({
   );
 };
 
-const DropdownMenu = ({ title, menuItems }) => {
+const DropdownMenu = ({ title, menuItems, searchVal, setsearchVal }) => {
   const [open, setopen] = useState(false);
   const menuRef = useRef(null);
   const dropdownRef = useRef(null);
-  const [searchVal, setsearchVal] = useState("");
   // 获取当前页码
   const searchParams = useSearchParams();
   const params = new URLSearchParams(searchParams);
@@ -259,16 +287,29 @@ const DropdownMenu = ({ title, menuItems }) => {
   const pathname = usePathname();
   const { replace } = useRouter();
 
+  let filteredItems = [];
+
+  if (searchVal.length === 0) {
+    filteredItems = menuItems;
+  }
+
+  if (searchVal.length > 0) {
+    filteredItems = menuItems.filter((item) =>
+      item.name.toLowerCase().includes(searchVal.toLowerCase()),
+    );
+  }
+
   const toggleDropdown = () => {
     setopen((status) => !status);
   };
 
+  // 查找分类或作者
   const ChangeSearch = (e) => {
     setsearchVal(e.target.value);
   };
 
-  const searchItems = (label: string, name: string) => {
-    const labelName = label.split("_")[0];
+  const searchItems = (name: string) => {
+    const labelName = title === "分类" ? "category" : "author";
     toggleDropdown();
     params.delete("category");
     params.delete("author");
@@ -336,24 +377,20 @@ const DropdownMenu = ({ title, menuItems }) => {
               />
             </div>
           </div>
-          {menuItems &&
-            menuItems.map((item, inx) => (
+          {filteredItems && filteredItems.length > 0 ? (
+            filteredItems.map((item, inx) => (
               <button
                 key={inx}
                 className="py-2 px-2 hover:bg-gray-50 w-full flex items-center justify-between border-t"
-                onClick={() =>
-                  searchItems(
-                    Object.keys(item)[0],
-                    item.category_name || item.author_name,
-                  )
-                }
+                onClick={() => searchItems(item.name)}
               >
-                <H6 className="text-black">
-                  {item.category_name || item.author_name}
-                </H6>
+                <H6 className="text-black">{item.name}</H6>
                 <H6 className="text-black">{`${item.book_count}篇文章`}</H6>
               </button>
-            ))}
+            ))
+          ) : (
+            <div className="p-2 text-[14px] text-gray-500">未找到相关结果</div>
+          )}
         </div>
       )}
     </div>

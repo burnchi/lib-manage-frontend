@@ -1,6 +1,6 @@
 "use client";
 import { fetchAuthors } from "@/app/lib/author";
-import { addBook } from "@/app/lib/books";
+import { addBook, updateBook } from "@/app/lib/books";
 import { fetchCategories } from "@/app/lib/categories";
 import { cn } from "@/app/lib/util";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -15,7 +15,7 @@ interface FormData {
   category: string;
   copied_owned: number;
 }
-const UploadForm = () => {
+const UploadForm = ({ id, book }: { id?: number; book?: any }) => {
   const [categoryVal, setcategoryVal] = useState("");
   const [categoryList, setcategoryList] = useState([]);
   const [categorydropdownVisible, setcategoryDropdownVisible] = useState(false);
@@ -30,6 +30,7 @@ const UploadForm = () => {
   const { errors } = formState;
   const router = useRouter();
   const categoryName = "category";
+  const bookPage = "/dashboard/book";
 
   // 请求所有分类数据
   const { data: categories } = useQuery({
@@ -42,6 +43,17 @@ const UploadForm = () => {
     queryKey: ["authors"],
     queryFn: fetchAuthors,
   });
+
+  // console.log(book);
+
+  // 更新book page，显示初始值
+  useEffect(() => {
+    // book可能返回错误的对象，所以需要判断一下
+    if (book && book?.id) {
+      setcategorySelectedTags([book.category.name]);
+      setauthorSelectedTags(book.authors.map((author) => author.name));
+    }
+  }, [book]);
 
   const ChangeAuthor = (e: any) => {
     // TODO: 点击某个分类后，再次点击输入框，应该清空已输入的内容
@@ -152,16 +164,26 @@ const UploadForm = () => {
     mutationFn: addBook,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["books"] });
-      router.push("/dashboard/upload");
+      router.push(bookPage);
     },
     onError: (error) => {
       console.log(error);
     },
   });
 
+  const updateBookMutation = useMutation({
+    mutationFn: updateBook,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["books"] });
+      router.push(bookPage);
+    },
+    onError: (error) => {
+      console.log(error);
+    },
+  });
   // 请求后端API
   const authenticate = (formData: any) => {
-    console.log("call submit");
+    // console.log("call submit");
     // console.log(formData);
     const { copied_owned } = formData;
     const mergeFormData = {
@@ -170,14 +192,40 @@ const UploadForm = () => {
       category_name: categoryselectedTags[0],
     }; // const { title, author, publishedAt, category, copied_owned } = formData;
     // console.log(mergeFormData);
-    const copied_num = parseInt(copied_owned, 10);
     // console.log(copied_owned);
     // 需要请求其他表的指定数据，找到他们的id,请求完还需要更新一下作者id
-    // 请求api
-    createBookMutation.mutate({
-      ...mergeFormData,
-      copied_owned: copied_num,
-    });
+    // console.log(mergeFormData);
+    // 如果没有id，则是创建书籍
+    if (!id) {
+      const copied_num = parseInt(copied_owned, 10);
+      createBookMutation.mutate({
+        ...mergeFormData,
+        copied_owned: copied_num,
+      });
+    }
+    // 如果有id，则是更新书籍
+    if (id) {
+      // 过滤掉空值
+      Object.keys(mergeFormData).forEach((key) => {
+        if (mergeFormData[key] === "") {
+          delete mergeFormData[key];
+        }
+      });
+      // 如果有库存字段，则变为正整数
+      if (copied_owned) {
+        const copied_num = parseInt(copied_owned, 10);
+        updateBookMutation.mutate({
+          id,
+          ...mergeFormData,
+          copied_owned: copied_num,
+        });
+        return;
+      }
+      updateBookMutation.mutate({
+        id,
+        ...mergeFormData,
+      });
+    }
   };
   return (
     <div className="bg-bg ">
@@ -189,14 +237,17 @@ const UploadForm = () => {
           inputid="title"
           label="书名"
           register={register}
-          validation={{ required: { value: true, message: "请输入书名" } }}
+          validation={
+            book
+              ? undefined
+              : { required: { value: true, message: "请输入书名" } }
+          }
           message={errors["title"]?.message}
-          placeholder="论语"
+          placeholder={book && book.id ? book.title : "论语"}
         />
         <Select
           label="作者"
           inputid="author"
-          placeholder="孔子"
           inputValue={authorVal}
           handleChange={ChangeAuthor}
           handleSelect={SelectAuthor}
@@ -219,13 +270,12 @@ const UploadForm = () => {
               message: "请输入正确的日期格式",
             },
           }}
-          placeholder="2023-01-01"
+          placeholder={book && book.id ? book.publishedAt : "2023-01-01"}
           message={errors["publishedAt"]?.message}
         />
         <Select
           inputid={categoryName}
           label="分类"
-          placeholder="计算机"
           inputValue={categoryVal}
           handleChange={ChangeCategory}
           handleSelect={SelectCategory}
@@ -247,14 +297,14 @@ const UploadForm = () => {
               message: "请输入正整数",
             },
           }}
-          placeholder="100"
+          placeholder={book && book.id ? book.copied_owned : "100"}
           message={errors["copied_owned"]?.message}
         />
         <button
           type="submit"
           className=" mx-auto p-1 px-5 bg-blue-500 text-white hover:opacity-90 rounded-sm"
         >
-          上架
+          {id ? "更新" : "上架"}
         </button>
       </form>
     </div>
@@ -365,7 +415,6 @@ const Select = ({
           type="text"
           id={inputid}
           value={inputValue}
-          placeholder={placeholder}
           ref={inputRef}
           onChange={handleChange}
           onFocus={() => setDropdownVisible(true)}

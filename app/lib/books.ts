@@ -22,6 +22,12 @@ export async function findBooks({
   return response.json();
 }
 
+// find a book by id
+export async function findBookById(id: number) {
+  const response = await fetch(url + route + `/${id}`);
+  return response.json();
+}
+
 export async function addBook(book: Book) {
   const response = await fetch(url + route, {
     method: "POST",
@@ -39,13 +45,14 @@ export async function deleteBook(id: number) {
   });
   return response.json();
 }
-export async function updateBook(id: number, book: Book) {
+export async function updateBook(book: Book) {
+  const { id, ...rest } = book;
   const response = await fetch(url + route + `/${id}`, {
-    method: "PUT",
+    method: "PATCH",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(book),
+    body: JSON.stringify(rest),
   });
   return response.json();
 }

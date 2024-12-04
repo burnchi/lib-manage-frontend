@@ -21,14 +21,9 @@ export const sidebarItems = [
   },
   {
     label: "上架书籍",
-    href: "/dashboard/upload",
+    href: "/dashboard/book",
     icon: GrHelpBook,
     title: "上架",
-  },
-  {
-    label: "查询书籍",
-    href: "/dashboard/searchbook",
-    icon: GrHelpBook,
   },
   {
     label: "借书管理",
@@ -69,7 +64,7 @@ export const quickItems = [
   },
   {
     label: "快速上架",
-    href: "/dashboard/upload",
+    href: "/dashboard/book",
     icon: GrHelpBook,
     description: "快速切换到上架书籍",
   },
