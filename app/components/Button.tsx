@@ -7,10 +7,10 @@ const Button = ({
   className,
   onClick,
 }: {
-  icon: IconType;
+  icon?: IconType;
   label: string;
   className?: string;
-  onClick: () => void;
+  onClick?: () => void;
 }) => {
   return (
     <button

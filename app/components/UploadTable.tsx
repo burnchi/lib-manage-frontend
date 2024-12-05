@@ -1,18 +1,22 @@
 "use client";
+import H2 from "@/app/components/H2";
 import H6 from "@/app/components/H6";
 import Pagination from "@/app/components/Pagination";
+import openModalhook from "@/app/hooks/openModalhook";
 import { searchAuthorHook } from "@/app/hooks/searchAuthorHook";
 import { searchCategoryHook } from "@/app/hooks/searchCategoryHook";
+import { selectCardHook } from "@/app/hooks/selectCardHook";
 import { fetchAuthors } from "@/app/lib/author";
-import { findBooks } from "@/app/lib/books";
+import { deleteBook, findBooks } from "@/app/lib/books";
 import { fetchCategories } from "@/app/lib/categories";
 import { websiteData } from "@/app/lib/data";
 import { cn } from "@/app/lib/util";
-import { useQuery } from "@tanstack/react-query";
+import ModalProvider from "@/app/providers/ModalProvider";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { IoIosCloseCircleOutline } from "react-icons/io";
+import { IoIosCloseCircleOutline, IoIosWarning } from "react-icons/io";
 
 const UploadTable = () => {
   // const { page, pageSize } = usePagination();
@@ -21,6 +25,8 @@ const UploadTable = () => {
   const { defaultPage, defaultPageSize } = websiteData;
   const { categoryVal, setcategoryVal } = searchCategoryHook();
   const { authorVal, setauthorVal } = searchAuthorHook();
+  const { selectedCardList, setselectedCardList } = selectCardHook();
+  const { onOpen, onClose } = openModalhook();
 
   // 获取当前页码
   const searchParams = useSearchParams();
@@ -33,6 +39,7 @@ const UploadTable = () => {
   const dropdownItems = ["分类", "作者"];
   let category = params.get("category") || "";
   let author = params.get("author") || "";
+  const queryClient = useQueryClient();
 
   // console.log(page, pageSize);
 
@@ -67,6 +74,23 @@ const UploadTable = () => {
     totalPages = bookObj.totalPages;
   }
 
+  const selectAllCard = (e) => {
+    let newList = [];
+    if (bookObj && bookObj?.books) {
+      if (e.target.checked) {
+        newList = bookObj.books.map((book) => ({
+          id: book.id,
+          title: book.title,
+        }));
+        setselectedCardList(newList);
+      } else {
+        setselectedCardList([]);
+      }
+    }
+    // console.log(selectedCardList);
+  };
+
+  // 渲染下拉菜单
   const dropdownMenu = dropdownItems.map((item) => {
     if (item === "分类") {
       return (
@@ -94,6 +118,7 @@ const UploadTable = () => {
 
   const searchCategory = (name: string) => {
     params.set("category", name);
+    params.delete("search");
     // 跳转到第一页
     params.delete("page");
     replace(`${pathname}?${params}`);
@@ -101,6 +126,7 @@ const UploadTable = () => {
 
   const searchAuthor = (name: string) => {
     params.set("author", name);
+    params.delete("search");
     // 跳转到第一页
     params.delete("page");
     replace(`${pathname}?${params}`);
@@ -109,6 +135,7 @@ const UploadTable = () => {
   const ChangeSearch = (e: any) => {
     setsearchVal(e.target.value);
   };
+
   const clearSearch = () => {
     setsearchVal("");
     setcategoryVal("");
@@ -130,11 +157,49 @@ const UploadTable = () => {
     }
   };
 
+  const openComfirmDialog = () => {
+    // console.log("openComfirmDialog");
+    onOpen();
+  };
+
+  const delBookMutation = useMutation({
+    mutationFn: deleteBook,
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["books"] });
+      // 清除状态，关闭弹窗
+      setselectedCardList([]);
+      onClose();
+    },
+    onError: (error) => {
+      console.log(error);
+    },
+  });
+
+  const deleteComfirm = () => {
+    const newIdList = selectedCardList.map((item) => item.id);
+
+    // 批量删除
+    newIdList.forEach((id) => {
+      delBookMutation.mutate(id);
+    });
+
+    // console.log(newIdList);
+    // del books
+  };
+
+  const cancelComfirm = () => {
+    // console.log("cancel");
+    onClose();
+  };
+
+  // 清除搜索框
   useEffect(() => {
     // 监听 blur 事件
     const onBlur = () => {
       if (searchVal.length !== 0) {
         params.set("search", searchVal);
+        params.delete("category");
+        params.delete("author");
         params.delete("page");
         replace(`${pathname}?${params}`);
       }
@@ -151,7 +216,7 @@ const UploadTable = () => {
       <div className="border-b border-[#eaecf0] w-full bg-gray-50 px-4 py-3 relative flex flex-col flex-wrap items-start gap-4 sm:flex-row sm:items-center">
         {/* 复选框 */}
         <div className="hidden items-center sm:flex">
-          <input type="checkbox" />
+          <input type="checkbox" onChange={selectAllCard} />
         </div>
         {/* 搜索框 */}
         <div className="flex w-full flex-1 items-center sm:w-auto">
@@ -169,10 +234,51 @@ const UploadTable = () => {
               type="text"
             />
           </div>
+          {/* 清除搜索框按钮 */}
           {searchVal.length > 0 && <ResetButton clearSearch={clearSearch} />}
+          {/* 批量操作按钮 */}
+          {selectedCardList.length > 0 && (
+            <button
+              className="text-red-500 px-2 py-1 hover:text-red-600 text-[14px]"
+              onClick={openComfirmDialog}
+            >
+              批量删除
+            </button>
+          )}
         </div>
+        {/* 批量操作弹窗 */}
+        <ModalProvider>
+          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white w-[300px]  z-[70] rounded-md shadow-md p-3 space-y-3">
+            <H2 className="text-[15px] flex gap-2 items-center">
+              <IoIosWarning className="text-yellow-400" size={18} />
+              是否删除
+            </H2>
+            <div className="space-x-1">
+              {selectedCardList.map((item) => (
+                <div className="text-gray-500">{item.title}</div>
+              ))}
+            </div>
+            <div className="flex  items-center gap-2 ">
+              <button
+                className="px-3 py-1 rounded-sm bg-green-400  hover:opacity-90"
+                onClick={deleteComfirm}
+              >
+                确定
+              </button>
+              <button
+                className="px-3 py-1 rounded-sm bg-red-500 text-white hover:opacity-80"
+                onClick={cancelComfirm}
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </ModalProvider>
+
         {/* 分类/作者下拉菜单 */}
         <div className="flex flex-wrap gap-2 items-center">
+          {/* 展示选择文本 */}
+
           {(category || author) && <ResetButton clearSearch={clearSearch} />}
           {/* 点击之后弹出分类选择框 */}
           {dropdownMenu}
@@ -223,38 +329,91 @@ const Card = ({
   copied_owned: number;
 }) => {
   const updateHref = `/dashboard/book/${id}`;
+  const { selectedCardList, setselectedCardList } = selectCardHook();
+  const searchParams = useSearchParams();
+  const params = new URLSearchParams(searchParams);
+  const paramsCategory = params.get("category");
+  const paramsAuthor = params.get("author");
+  // console.log(selectedCardList);
+  const checked = selectedCardList.some((item) => item.id === id);
+
+  // 选择框选中时
+  const hasSelected = (e, id) => {
+    let newList = selectedCardList;
+    if (e.target.checked) {
+      const hasChecked = newList.some((item) => {
+        item.id === id;
+      });
+      if (!hasChecked) {
+        newList.push({ id, title }); // 添加新值
+      }
+    } else {
+      newList = newList.filter((item) => item.id !== id); // 移除旧值
+      // console.log(newList);
+    }
+    setselectedCardList(newList);
+  };
+  // console.log(selectedCardList);
   return (
-    <li className="p-primary hover:bg-gray-50 border-b border-[#eaecf0]">
+    <li className="p-primary hover:bg-gray-50 border-b border-[#eaecf0] relative">
       {/* indicator */}
-      <div></div>
+      {checked && (
+        <div
+          className="h-[90%] w-[0.25rem] bg-primary absolute top-1/2 -translate-y-1/2 left-0
+        "
+        />
+      )}
       {/* entity */}
       <div className="relative flex items-center w-full">
         {/* 选择框 */}
         <div className="mr-[1rem]">
-          <input type="checkbox" className="rounded-sm " />
+          <input
+            type="checkbox"
+            className="rounded-sm"
+            checked={checked}
+            onChange={(e) => hasSelected(e, id)}
+            id={String(id)}
+          />
         </div>
         {/* entity start */}
         <div className="flex flex-1 gap-[1rem] items-center">
           <div className="inline-flex flex-col items-start  gap-[0.25rem]">
             {/* 标题 */}
-            <Link href={updateHref} className="text-base w-auto">
+            <Link
+              href={updateHref}
+              className="text-base w-auto hover:text-black text-gray-800"
+            >
               {title}
             </Link>
             {/* 标题底下部分 */}
             <div className="flex items-center  gap-[0.5rem]">
               <H6 className="text-gray-500 ">
                 作者:
-                <div className="inline-flex gap-[0.25rem] ">
+                <div className="inline-flex items-center gap-[0.25rem]">
                   {authors.map((author) => (
-                    <span key={author}>{author}</span>
+                    <span
+                      className={cn(
+                        author === paramsAuthor ? "text-blue-500" : "",
+                      )}
+                      key={author}
+                    >
+                      {author}
+                    </span>
                   ))}
                 </div>
               </H6>
               <H6 className="text-gray-500">
-                分类:<Link href={"/"}>{category}</Link>
+                分类:
+                <span
+                  className={cn(
+                    category === paramsCategory ? "text-blue-500" : "",
+                  )}
+                >
+                  {category}
+                </span>
               </H6>
               <H6 className="text-gray-500">
-                出版日期:<Link href={"/"}>{publishedAt}</Link>
+                出版日期:<span>{publishedAt}</span>
               </H6>
               <H6 className="text-gray-500">
                 库存:<span>{copied_owned}</span>
@@ -308,11 +467,13 @@ const DropdownMenu = ({ title, menuItems, searchVal, setsearchVal }) => {
     setsearchVal(e.target.value);
   };
 
+  // 点击分类或作者中的按钮
   const searchItems = (name: string) => {
     const labelName = title === "分类" ? "category" : "author";
     toggleDropdown();
     params.delete("category");
     params.delete("author");
+    params.delete("search");
     params.set(labelName, name);
     // 跳转到第一页
     params.delete("page");

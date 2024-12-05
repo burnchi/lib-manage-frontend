@@ -28,12 +28,12 @@ const UploadForm = ({ id, book }: { id?: number; book?: any }) => {
   const queryClient = useQueryClient();
   const { register, handleSubmit, formState } = useForm<FormData>();
   const { errors } = formState;
-  let authorMessage = "";
-  let categoryMessage = "";
+  const [authorMessage, setauthorMessage] = useState("");
+  const [categoryMessage, setcategoryMessage] = useState("");
   const router = useRouter();
   const categoryName = "category";
   const bookPage = "/dashboard/book";
-  console.log(errors);
+  // console.log(errors);
 
   // 请求所有分类数据
   const { data: categories } = useQuery({
@@ -49,7 +49,7 @@ const UploadForm = ({ id, book }: { id?: number; book?: any }) => {
 
   // console.log(book);
 
-  // 更新book page，显示初始值
+  // 更新页面，显示初始值
   useEffect(() => {
     // book可能返回错误的对象，所以需要判断一下
     if (book && book?.id) {
@@ -57,6 +57,19 @@ const UploadForm = ({ id, book }: { id?: number; book?: any }) => {
       setauthorSelectedTags(book.authors.map((author) => author.name));
     }
   }, [book]);
+
+  useEffect(() => {
+    // 创建页面
+    if (!id) {
+      // 如果选择了分类或作者，错误信息应该清空
+      if (categoryselectedTags.length > 0) {
+        setcategoryMessage("");
+      }
+      if (authorselectedTags.length > 0) {
+        setauthorMessage("");
+      }
+    }
+  }, [categoryselectedTags, authorselectedTags]);
 
   const ChangeAuthor = (e: any) => {
     // TODO: 点击某个分类后，再次点击输入框，应该清空已输入的内容
@@ -167,7 +180,7 @@ const UploadForm = ({ id, book }: { id?: number; book?: any }) => {
     mutationFn: addBook,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["books"] });
-      // router.push(bookPage);
+      router.push(bookPage);
     },
     onError: (error) => {
       console.log(error);
@@ -178,7 +191,7 @@ const UploadForm = ({ id, book }: { id?: number; book?: any }) => {
     mutationFn: updateBook,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["books"] });
-      // router.push(bookPage);
+      router.push(bookPage);
     },
     onError: (error) => {
       console.log(error);
@@ -201,6 +214,20 @@ const UploadForm = ({ id, book }: { id?: number; book?: any }) => {
     // console.log(mergeFormData);
     // 如果没有id，则是创建书籍
     if (!id) {
+      // 作者和分类不能为空
+      if (
+        authorselectedTags.length === 0 ||
+        categoryselectedTags.length === 0
+      ) {
+        if (authorselectedTags.length === 0) {
+          setauthorMessage("请选择作者");
+        }
+        if (categoryselectedTags.length === 0) {
+          setcategoryMessage("请选择分类");
+        }
+        return;
+      }
+
       const copied_num = parseInt(copied_owned, 10);
       createBookMutation.mutate({
         ...mergeFormData,
@@ -412,7 +439,7 @@ const Select = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-  console.log(message);
+  console.log("msg" + message);
 
   return (
     <div className="flex flex-col gap-1 relative">
