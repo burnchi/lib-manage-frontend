@@ -1,4 +1,5 @@
 "use client";
+import useToastHook from "@/app/hooks/useToastHook";
 import { fetchAuthors } from "@/app/lib/author";
 import { addBook, updateBook } from "@/app/lib/books";
 import { fetchCategories } from "@/app/lib/categories";
@@ -7,6 +8,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
+import { FaRegCheckCircle } from "react-icons/fa";
 
 interface FormData {
   title: string;
@@ -33,6 +35,7 @@ const UploadForm = ({ id, book }: { id?: number; book?: any }) => {
   const router = useRouter();
   const categoryName = "category";
   const bookPage = "/dashboard/book";
+  const { onOpenToast, setToastObj } = useToastHook();
   // console.log(errors);
 
   // 请求所有分类数据
@@ -181,6 +184,13 @@ const UploadForm = ({ id, book }: { id?: number; book?: any }) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["books"] });
       router.push(bookPage);
+      // open Toast
+
+      setToastObj({
+        message: "上架成功",
+        Icon: FaRegCheckCircle,
+      });
+      onOpenToast();
     },
     onError: (error) => {
       console.log(error);
@@ -192,6 +202,11 @@ const UploadForm = ({ id, book }: { id?: number; book?: any }) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["books"] });
       router.push(bookPage);
+      setToastObj({
+        message: "更新成功",
+        Icon: FaRegCheckCircle,
+      });
+      onOpenToast();
     },
     onError: (error) => {
       console.log(error);
@@ -200,18 +215,15 @@ const UploadForm = ({ id, book }: { id?: number; book?: any }) => {
 
   // 请求后端API
   const authenticate = (formData: any) => {
-    console.log("call submit");
+    // console.log("call submit");
     // console.log(formData);
     const { copied_owned } = formData;
     const mergeFormData = {
       ...formData,
       author_list: authorselectedTags,
       category_name: categoryselectedTags[0],
-    }; // const { title, author, publishedAt, category, copied_owned } = formData;
-    // console.log(mergeFormData);
-    // console.log(copied_owned);
-    // 需要请求其他表的指定数据，找到他们的id,请求完还需要更新一下作者id
-    // console.log(mergeFormData);
+    };
+
     // 如果没有id，则是创建书籍
     if (!id) {
       // 作者和分类不能为空
@@ -439,7 +451,7 @@ const Select = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-  console.log("msg" + message);
+  // console.log("msg" + message);
 
   return (
     <div className="flex flex-col gap-1 relative">

@@ -1,4 +1,5 @@
 import TanStackProvider from "@/app/components/TanStackProvider";
+import Toast from "@/app/components/Toast";
 import { websiteData } from "@/app/lib/data";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
@@ -24,6 +25,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${NotoSansSCRegular.className}`}>
         <TanStackProvider>{children}</TanStackProvider>
+        <Toast />
       </body>
     </html>
   );

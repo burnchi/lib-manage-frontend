@@ -18,6 +18,29 @@ const config: Config = {
       padding: {
         primary: "16px",
       },
+      animation: {
+        toastmove: "tmove 3s linear ",
+      },
+      keyframes: {
+        tmove: {
+          "0% ": {
+            transform: "translateY(0px) translateX(50%)",
+            opacity: "20%",
+          },
+          "10%": {
+            transform: "translateY(80px) translateX(50%)",
+            opacity: "100%",
+          },
+          "80%": {
+            transform: "translateY(80px) translateX(50%)",
+            opacity: "100%",
+          },
+          "100%": {
+            transform: "translateY(60px) translateX(50%)",
+            opacity: "0",
+          },
+        },
+      },
     },
   },
   plugins: [],
