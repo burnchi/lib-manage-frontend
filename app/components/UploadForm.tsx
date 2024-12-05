@@ -28,9 +28,12 @@ const UploadForm = ({ id, book }: { id?: number; book?: any }) => {
   const queryClient = useQueryClient();
   const { register, handleSubmit, formState } = useForm<FormData>();
   const { errors } = formState;
+  let authorMessage = "";
+  let categoryMessage = "";
   const router = useRouter();
   const categoryName = "category";
   const bookPage = "/dashboard/book";
+  console.log(errors);
 
   // 请求所有分类数据
   const { data: categories } = useQuery({
@@ -164,7 +167,7 @@ const UploadForm = ({ id, book }: { id?: number; book?: any }) => {
     mutationFn: addBook,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["books"] });
-      router.push(bookPage);
+      // router.push(bookPage);
     },
     onError: (error) => {
       console.log(error);
@@ -175,15 +178,16 @@ const UploadForm = ({ id, book }: { id?: number; book?: any }) => {
     mutationFn: updateBook,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["books"] });
-      router.push(bookPage);
+      // router.push(bookPage);
     },
     onError: (error) => {
       console.log(error);
     },
   });
+
   // 请求后端API
   const authenticate = (formData: any) => {
-    // console.log("call submit");
+    console.log("call submit");
     // console.log(formData);
     const { copied_owned } = formData;
     const mergeFormData = {
@@ -238,8 +242,8 @@ const UploadForm = ({ id, book }: { id?: number; book?: any }) => {
           label="书名"
           register={register}
           validation={
-            book
-              ? undefined
+            book && book.id
+              ? { required: false }
               : { required: { value: true, message: "请输入书名" } }
           }
           message={errors["title"]?.message}
@@ -254,6 +258,7 @@ const UploadForm = ({ id, book }: { id?: number; book?: any }) => {
           selectedTags={authorselectedTags}
           DelSelectedTag={DelAuthorSelectedTag}
           CreateItem={CreateAuthor}
+          message={authorMessage}
           startList={authors}
           filterList={authorList}
           setDropdownVisible={setauthorDropdownVisible}
@@ -264,18 +269,30 @@ const UploadForm = ({ id, book }: { id?: number; book?: any }) => {
           inputid="publishedAt"
           label="出版日期"
           register={register}
-          validation={{
-            pattern: {
-              value: /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/,
-              message: "请输入正确的日期格式",
-            },
-          }}
+          validation={
+            book && book.id
+              ? {
+                  required: false,
+                  pattern: {
+                    value: /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/,
+                    message: "请输入正确的日期格式",
+                  },
+                }
+              : {
+                  required: { value: true, message: "请输入出版日期" },
+                  pattern: {
+                    value: /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/,
+                    message: "请输入正确的日期格式",
+                  },
+                }
+          }
           placeholder={book && book.id ? book.publishedAt : "2023-01-01"}
           message={errors["publishedAt"]?.message}
         />
         <Select
           inputid={categoryName}
           label="分类"
+          message={categoryMessage}
           inputValue={categoryVal}
           handleChange={ChangeCategory}
           handleSelect={SelectCategory}
@@ -291,12 +308,23 @@ const UploadForm = ({ id, book }: { id?: number; book?: any }) => {
           inputid="copied_owned"
           label="库存"
           register={register}
-          validation={{
-            pattern: {
-              value: /^\d+$/,
-              message: "请输入正整数",
-            },
-          }}
+          validation={
+            book && book.id
+              ? {
+                  required: false,
+                  pattern: {
+                    value: /^\d+$/,
+                    message: "请输入正整数",
+                  },
+                }
+              : {
+                  required: { value: true, message: "请输入库存" },
+                  pattern: {
+                    value: /^\d+$/,
+                    message: "请输入正整数",
+                  },
+                }
+          }
           placeholder={book && book.id ? book.copied_owned : "100"}
           message={errors["copied_owned"]?.message}
         />
@@ -348,6 +376,7 @@ const Select = ({
   setDropdownVisible,
   dropdownVisible,
   placeholder,
+  message,
   inputid,
   label,
 }: any) => {
@@ -383,6 +412,7 @@ const Select = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+  console.log(message);
 
   return (
     <div className="flex flex-col gap-1 relative">
@@ -420,6 +450,10 @@ const Select = ({
           onFocus={() => setDropdownVisible(true)}
         />
       </div>
+      {/* 选择框的错误信息 */}
+      {message.length !== 0 && (
+        <p className="text-red-500 text-[12px]">{message}</p>
+      )}
 
       {/* 浮空菜单 */}
       <div
