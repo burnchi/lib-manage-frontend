@@ -23,13 +23,21 @@ const Header = ({ children }: { children: React.ReactNode }) => {
     router.push("/dashboard/book/create");
   };
 
+  const CreateLoan = () => {
+    router.push("/dashboard/loan/create");
+  };
+
   // 根据路由设置右侧按钮
   switch (pathname) {
     case "/dashboard/book":
       headerRight = (
         <Button label="新建" icon={FiPlusCircle} onClick={UploadBook} />
       );
-
+      break;
+    case "/dashboard/loan":
+      headerRight = (
+        <Button label="新建" icon={FiPlusCircle} onClick={CreateLoan} />
+      );
       break;
 
     default:

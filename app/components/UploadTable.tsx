@@ -470,6 +470,7 @@ const DropdownMenu = ({ title, menuItems, searchVal, setsearchVal }) => {
   // 点击分类或作者中的按钮
   const searchItems = (name: string) => {
     const labelName = title === "分类" ? "category" : "author";
+    console.log("aakj");
     toggleDropdown();
     params.delete("category");
     params.delete("author");

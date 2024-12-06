@@ -1,5 +1,7 @@
+import LoanTable from "@/app/components/LoanTable";
+
 const LoanPage = () => {
-  return <div>LoanPage</div>;
+  return <LoanTable />;
 };
 
 export default LoanPage;

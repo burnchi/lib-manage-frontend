@@ -13,9 +13,12 @@ const Sidebar = () => {
       </div>
       {/* 底部内容 */}
       <div className=" flex-1 w-full gap-1 p-4 bg-[#35393e] flex flex-col dark:bg-[#363838] transition-all ease duration-300">
-        {sidebarItems.map((item) => (
-          <SidebarItem {...item} key={item.label} />
-        ))}
+        {sidebarItems.map((item) => {
+          if (item?.sidebar === false) {
+            return <></>;
+          }
+          return <SidebarItem {...item} key={item.label} />;
+        })}
       </div>
     </div>
   );

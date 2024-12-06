@@ -1,3 +1,6 @@
+import { BsReverseLayoutTextSidebarReverse } from "react-icons/bs";
+import { FaBook, FaRegQuestionCircle, FaUserCircle } from "react-icons/fa";
+import { FiUsers } from "react-icons/fi";
 import { GrHelpBook } from "react-icons/gr";
 import { VscDashboard } from "react-icons/vsc";
 
@@ -17,35 +20,42 @@ export const sidebarItems = [
   {
     label: "使用文档",
     href: "/dashboard/knowledge",
-    icon: GrHelpBook,
+    icon: FaRegQuestionCircle,
   },
   {
     label: "上架书籍",
     href: "/dashboard/book",
-    icon: GrHelpBook,
+    icon: FaBook,
     title: "上架",
+  },
+  {
+    label: "更新书籍",
+    href: "/dashboard/book/",
+    icon: FaBook,
+    sidebar: false,
+  },
+  {
+    label: "上架书籍",
+    href: "/dashboard/book/create",
+    icon: FaBook,
+    sidebar: false,
   },
   {
     label: "借书管理",
     href: "/dashboard/loan",
-    icon: GrHelpBook,
+    icon: BsReverseLayoutTextSidebarReverse,
     title: "借书",
-  },
-  {
-    label: "借书记录",
-    href: "/dashboard/searchloan",
-    icon: GrHelpBook,
   },
   {
     label: "个人中心",
     href: "/dashboard/admin",
-    icon: GrHelpBook,
+    icon: FaUserCircle,
     title: "用户",
   },
   {
     label: "账号管理",
     href: "/dashboard/account",
-    icon: GrHelpBook,
+    icon: FiUsers,
   },
 ];
 
